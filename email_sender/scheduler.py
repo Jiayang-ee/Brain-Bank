@@ -20,6 +20,7 @@ except ImportError:
     SCHEDULER_AVAILABLE = False
 
 from sender import EmailSender, EmailMessage, build_daily_brief_email
+from config_manager import load_subscribers, EmailConfig
 
 
 @dataclass
@@ -48,6 +49,17 @@ DEFAULT_FROM_EMAIL = os.environ.get("FROM_EMAIL", "noreply@example.com")
 
 # Mock 模式（本地测试用）
 MOCK_MODE = os.environ.get("MOCK_MODE", "false").lower() == "true"
+
+
+# ---------------------------------------------------------------------------
+# 配置加载
+# ---------------------------------------------------------------------------
+
+def load_settings() -> tuple:
+    """加载配置：订阅者列表和邮件配置"""
+    cfg = EmailConfig.from_file()
+    subscribers = load_subscribers()
+    return subscribers, cfg
 
 
 # ---------------------------------------------------------------------------
@@ -80,14 +92,22 @@ def fetch_daily_brief_content(date: str = None) -> str:
 # 邮件发送
 # ---------------------------------------------------------------------------
 
-def send_daily_brief(sender: EmailSender, content: str, date: str = None) -> dict:
+def send_daily_brief(sender, content, date=None, subscribers=None, cfg=None):
     """
     向所有活跃订阅者发送每日简报
     """
+    if subscribers is None:
+        subscribers, _ = load_settings()
+    if cfg is None:
+        _, cfg = load_settings()
+
+    if not cfg.email_enabled:
+        return {"date": date or datetime.now().strftime("%Y-%m-%d"), "status": "disabled", "message": "邮件推送已禁用"}
+
     results = []
     sent_at = datetime.utcnow().isoformat() + "Z"
 
-    for subscriber in SUBSCRIBERS:
+    for subscriber in subscribers:
         if not subscriber.active:
             continue
 
@@ -125,8 +145,8 @@ def send_daily_brief(sender: EmailSender, content: str, date: str = None) -> dic
     return {
         "date": date or datetime.now().strftime("%Y-%m-%d"),
         "sent_at": sent_at,
-        "total": len(SUBSCRIBERS),
-        "active": sum(1 for s in SUBSCRIBERS if s.active),
+        "total": len(subscribers),
+        "active": sum(1 for s in subscribers if s.active),
         "results": results
     }
 

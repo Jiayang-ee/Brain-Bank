@@ -1,0 +1,9 @@
+{
+  "subscribers": [
+    {
+      "email": "test@example.com",
+      "name": "测试用户",
+      "active": true
+    }
+  ]
+}
