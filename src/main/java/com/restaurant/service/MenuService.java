@@ -24,4 +24,8 @@ public class MenuService {
     public boolean deleteMenuItem(Long id) {
         return menuItemDAO.delete(id);
     }
+
+    public MenuItem getMenuItemById(Long id) {
+        return menuItemDAO.findById(id);
+    }
 }

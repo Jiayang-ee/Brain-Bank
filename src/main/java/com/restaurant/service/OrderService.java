@@ -1,6 +1,7 @@
 package com.restaurant.service;
 
 import com.restaurant.dao.OrderDAO;
+import com.restaurant.model.MenuItem;
 import com.restaurant.model.Order;
 import com.restaurant.model.OrderItem;
 
@@ -12,6 +13,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public class OrderService {
     private OrderDAO orderDAO = new OrderDAO();
+    private MenuService menuService = new MenuService();
+    private InventoryService inventoryService = new InventoryService();
     private static final AtomicInteger orderCounter = new AtomicInteger(1);
 
     public Order createOrder(List<OrderItem> items) {
@@ -30,6 +33,12 @@ public class OrderService {
         for (OrderItem item : items) {
             item.setOrderId(order.getId());
             orderDAO.insertOrderItem(item);
+
+            // 扣减库存：通过 menuItemId 查找对应的库存原料并扣减
+            MenuItem menuItem = menuService.getMenuItemById(item.getMenuItemId());
+            if (menuItem != null && menuItem.getInventoryItemId() != null) {
+                inventoryService.deductInventory(menuItem.getInventoryItemId(), item.getQuantity());
+            }
         }
 
         return order;
